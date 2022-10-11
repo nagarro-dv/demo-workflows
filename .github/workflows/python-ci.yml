@@ -1,0 +1,58 @@
+# The standard workflow configuration needs to include the name and conditions that trigger actions described in the file. 
+name: Phython Workflow
+
+# The On key specifies that the pipeline will be run on pushes and pulls to default branch.
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  python-ci:
+    runs-on: ubuntu-latest
+    strategy:
+      # The Matrix option is used to specify the strategy to run the pipeline in different environments with different configurations.
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
+      fail-fast: false
+ 
+    steps:
+    # This action checks-out the repository under $GITHUB_WORKSPACE, so the workflow can access it.
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    # Installs a version of Python and adds it to the PATH
+    - name: Install Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    # Install dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install flake8 pytest
+
+        # If there is a requiremnts file in the repo it will install the requirements
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      
+    # Linting  
+    # Flake8 will check for obvious errors, bad code style and suspicious code constructs.
+    - name: flake8 Lint
+      uses: py-actions/flake8@v2
+      
+      # With custom settings
+      #  https://github.com/marketplace/actions/python-flake8-lint
+      #
+      # with:
+      #   ignore: "F401"
+      #   exclude: "src/ignoreme.py"
+      #   max-line-length: "100"
+      #  path: "src"
+      #  plugins: "flake8-bugbear==22.1.11 flake8-black"
+      
+    - name: Test with pytest
+      run: |
+        pytest --cov --cov-report=xml"
+ 
